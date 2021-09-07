@@ -7,6 +7,9 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -25,6 +28,7 @@ import java.util.List;
 
 import ca.fuwafuwa.kaku.Constants;
 import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.EntryOptimized;
+import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.PitchOptimized;
 import ca.fuwafuwa.kaku.KakuTools;
 import ca.fuwafuwa.kaku.LangUtils;
 import ca.fuwafuwa.kaku.R;
@@ -38,6 +42,7 @@ import ca.fuwafuwa.kaku.Windows.Interfaces.ICopyText;
 import ca.fuwafuwa.kaku.Windows.Interfaces.IRecalculateKanjiViews;
 import ca.fuwafuwa.kaku.Windows.Interfaces.ISearchPerformer;
 import ca.fuwafuwa.kaku.Windows.Views.KanjiGridView;
+import ca.fuwafuwa.kaku.Windows.Views.PitchAccentSpan;
 
 /**
  * Created by 0xbad1d3a5 on 4/23/2016.
@@ -335,7 +340,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
     private void displayResults(List<JmSearchResult> jmResults)
     {
-        StringBuilder sb = new StringBuilder();
+        SpannableStringBuilder sb = new SpannableStringBuilder();
 
         for (JmSearchResult jmSearchResult : jmResults)
         {
@@ -349,13 +354,44 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                 else {
                     sb.append(" ");
                 }
-                sb.append(jmSearchResult.getEntry().getReadings());
+
+                String[] readings = jmSearchResult.getEntry().getReadings().split(",");
+
+                String kanji = jmSearchResult.getEntry().getKanji();
+                int charOffset = kanji.length() + 2;
+                for (int i = 0; i < readings.length; i++) {
+                    String s = readings[i].trim();
+                    SpannableString readingSpan = new SpannableString(s);
+                    String specialRemoved = s.replaceAll("\\.", "");
+                    Integer pitch = jmSearchResult.getPitchForReadingOrNull(specialRemoved);
+                    Log.d("PITCHES", "text: " + s + " pitch: " + pitch);
+                    if (pitch != null) {
+                        readingSpan.setSpan(new PitchAccentSpan(pitch, charOffset, charOffset + readingSpan.length()), 0, readingSpan.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    }
+                    charOffset += readingSpan.length();
+                    sb.append(readingSpan);
+
+                    if (i < readings.length - 1) {
+                        sb.append(", ");
+                        charOffset++;
+                    }
+                }
+
                 if (Constants.DB_JMDICT_NAME.equals(jmSearchResult.getEntry().getDictionary())) sb.append(")");
             }
 
             String deinfReason = jmSearchResult.getDeinfInfo().getReason();
             if (deinfReason != null && !deinfReason.isEmpty()){
                 sb.append(String.format(" %s", deinfReason));
+            }
+
+            for (PitchOptimized pitch : jmSearchResult.getPitches())
+            {
+                sb.append(" [").append(pitch.getPitch().toString());
+                if (!pitch.getPos().isEmpty()) {
+                    sb.append(", ").append(pitch.getPos());
+                }
+                sb.append("]");
             }
 
             sb.append("\n");
@@ -365,10 +401,10 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
         if (sb.length() > 2)
         {
-            sb.setLength(sb.length() - 2);
+            sb.delete(sb.length() - 2, sb.length());
         }
 
-        mDictResults.setText(sb.toString());
+        mDictResults.setText(sb);
     }
 
     private String getMeaning(EntryOptimized entry)

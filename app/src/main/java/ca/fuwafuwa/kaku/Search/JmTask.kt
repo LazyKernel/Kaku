@@ -6,7 +6,9 @@ import android.util.Log
 import ca.fuwafuwa.kaku.DB_JMDICT_NAME
 import ca.fuwafuwa.kaku.DB_KANJIDICT_NAME
 import ca.fuwafuwa.kaku.Database.JmDictDatabase.JmDatabaseHelper
+import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.Entry
 import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.EntryOptimized
+import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.PitchOptimized
 import ca.fuwafuwa.kaku.Deinflictor.DeinflectionInfo
 import ca.fuwafuwa.kaku.Deinflictor.Deinflector
 import java.sql.SQLException
@@ -102,7 +104,7 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
                     }
 
                     if (valid){
-                        results.add(JmSearchResult(entry, deinfInfo, word))
+                        results.add(JmSearchResult(entry, deinfInfo, word, getPitchesForEntry(entry)))
                         seenEntries.add(entry)
                     }
 
@@ -119,7 +121,7 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
                     continue
                 }
 
-                results.add(JmSearchResult(entry, DeinflectionInfo(word, 0, ""), word))
+                results.add(JmSearchResult(entry, DeinflectionInfo(word, 0, ""), word, getPitchesForEntry(entry)))
                 seenEntries.add(entry)
             }
 
@@ -127,6 +129,22 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
         }
 
         return results
+    }
+
+    private fun getPitchesForEntry(entry: EntryOptimized) : List<PitchOptimized>
+    {
+        val pitchOptimizedDao = mJmDbHelper.getDbDao<PitchOptimized>(PitchOptimized::class.java)
+        Log.d("PITCHES", "search term: ${entry.kanji}")
+        val pitches: List<PitchOptimized> = pitchOptimizedDao.queryBuilder().where().eq("expression", entry.kanji).query()
+        Log.d("PITCHES", "found ${pitches.size} pitches")
+        // Select pitches for this expression's part of speech or all if the part of speech is empty
+        val posList = entry.pos.split(',')
+        if (entry.pos == "" || pitches.none { posList.contains(it.pos) })
+        {
+            return pitches
+        }
+
+        return pitches.filter { posList.any { s -> s == it.pos} }
     }
 
     private fun rankResults(results: List<JmSearchResult>) : List<JmSearchResult>

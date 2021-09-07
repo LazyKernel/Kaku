@@ -29,6 +29,7 @@ import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.MeaningLoanSource;
 import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.MeaningMisc;
 import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.MeaningPartOfSpeech;
 import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.MeaningReadingRestriction;
+import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.PitchOptimized;
 import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.Reading;
 import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.ReadingIrregularity;
 import ca.fuwafuwa.kaku.Database.JmDictDatabase.Models.ReadingPriority;
@@ -44,7 +45,7 @@ public class JmDatabaseHelper extends DatabaseHelper {
     private static final String TAG = JmDatabaseHelper.class.getName();
 
     private static final String DATABASE_NAME = Constants.JMDICT_DATABASE_NAME;
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     private static JmDatabaseHelper instance;
 
@@ -66,17 +67,25 @@ public class JmDatabaseHelper extends DatabaseHelper {
     @Override
     public void onCreate(SQLiteDatabase database, ConnectionSource connectionSource) {
         Log.d(TAG, "JmDatabaseHelper onCreate");
-        try {
-            TableUtils.createTable(connectionSource, EntryOptimized.class);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        onUpgrade(database, connectionSource, 0, DATABASE_VERSION);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
         // Can't use onUpgrade, because getDbDao() will sometimes run first due to being on another thread, opening a DB connection and causing issues when we try to delete the DB
-        throw new NotImplementedException();
+        // LazyKernel: Using this to handle different table versions à la alembic, hopefully that's fine
+
+        try {
+            if (oldVersion < 1 && newVersion >= 1) {
+                TableUtils.createTable(connectionSource, EntryOptimized.class);
+            }
+
+            if (oldVersion < 2 && newVersion >= 2) {
+                TableUtils.createTable(connectionSource, PitchOptimized.class);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void deleteDatabase(){
