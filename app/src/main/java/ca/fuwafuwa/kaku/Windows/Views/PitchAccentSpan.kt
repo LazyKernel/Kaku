@@ -5,8 +5,9 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.text.style.LineBackgroundSpan
+import android.util.Log
 
-class PitchAccentSpan(private val mPitch: Int, private val mStart: Int, private val mEnd: Int) : LineBackgroundSpan {
+class PitchAccentSpan(private val mPitch: Int, private val mStart: Int, private val mEnd: Int, private val mNumCommas: Int) : LineBackgroundSpan {
 
     private val p = Paint()
     private var mPitchStart: Float? = null
@@ -23,10 +24,10 @@ class PitchAccentSpan(private val mPitch: Int, private val mStart: Int, private 
             return
         }
 
-        val offsetX = left + paint.measureText(text?.subSequence(start, start + mStart).toString())
+        val offsetX = left + paint.measureText(text?.subSequence(start, start + mStart).toString()) + (paint.measureText(",") * mNumCommas)
 
         if (mPitchStart == null || mPitchEnd == null) {
-            val textSpan = text?.subSequence(start + mStart, start + mEnd)
+            val textSpan = text?.subSequence(start + mStart + mNumCommas, start + mEnd + mNumCommas)
             val numDots = countSpecialsUntilLimit(textSpan, mPitch)
 
             mPitchStart = if (mPitch == 1 || mPitch + numDots == textSpan?.length) {
@@ -35,17 +36,19 @@ class PitchAccentSpan(private val mPitch: Int, private val mStart: Int, private 
                 paint.measureText(textSpan?.get(0)?.toString())
             }
 
-            mPitchEnd = if (mPitch == 0) {
-                paint.measureText(textSpan?.subSequence(1, textSpan.length)?.toString())
-            }
-            else {
-                paint.measureText(textSpan?.subSequence(0, mPitch + numDots)?.toString())
+            mPitchEnd = when (mPitch) {
+                0 -> paint.measureText(textSpan?.subSequence(1, textSpan.length)?.toString())
+                1 -> paint.measureText(textSpan?.subSequence(0, 1)?.toString())
+                else -> {
+                    Log.d("PITCHOVERLAY", "pitch: $mPitch end: ${mPitch + numDots - 1}")
+                    paint.measureText(textSpan?.subSequence(1, mPitch + numDots)?.toString())
+                }
             }
         }
 
         val path = Path()
-        path.moveTo(offsetX + mPitchStart!!, top.toFloat())
-        path.lineTo(offsetX + mPitchStart!! + mPitchEnd!!, top.toFloat())
+        path.moveTo(offsetX + mPitchStart!!, top.toFloat() + 3f)
+        path.lineTo(offsetX + mPitchStart!! + mPitchEnd!!, top.toFloat() + 3f)
         if (mPitch != 0) {
             path.lineTo(offsetX + mPitchStart!! + mPitchEnd!!, top + ((bottom - top) * 0.25f))
         }
@@ -59,12 +62,18 @@ class PitchAccentSpan(private val mPitch: Int, private val mStart: Int, private 
 
         var i = 0
         var numSpecial = 0
+        var mutableLimit = limit
         // Ignore dots marking kanji position and small letters
-        val specials = listOf('.', 'ぁ', 'ぃ', 'ぅ', 'ぇ', 'お', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ')
-        while (i < limit) {
+        val specials = listOf('.', ' ', 'ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ')
+        while (i < mutableLimit) {
+            // This theoretically shouldn't happen but it might
+            if (mutableLimit >= text.length) {
+                return numSpecial
+            }
+
             if (specials.contains(text[i])) {
+                mutableLimit++
                 numSpecial++
-                i--
             }
             i++
         }

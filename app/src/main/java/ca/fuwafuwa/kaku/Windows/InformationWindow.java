@@ -363,10 +363,10 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                     String s = readings[i].trim();
                     SpannableString readingSpan = new SpannableString(s);
                     String specialRemoved = s.replaceAll("\\.", "");
-                    Integer pitch = jmSearchResult.getPitchForReadingOrNull(specialRemoved);
+                    Integer pitch = jmSearchResult.getPitchForReadingOrNull(specialRemoved.trim());
                     Log.d("PITCHES", "text: " + s + " pitch: " + pitch);
                     if (pitch != null) {
-                        readingSpan.setSpan(new PitchAccentSpan(pitch, charOffset, charOffset + readingSpan.length()), 0, readingSpan.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                        readingSpan.setSpan(new PitchAccentSpan(pitch, charOffset, charOffset + readingSpan.length(), i), 0, readingSpan.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                     }
                     charOffset += readingSpan.length();
                     sb.append(readingSpan);

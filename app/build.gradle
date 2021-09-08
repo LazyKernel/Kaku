@@ -1,6 +1,6 @@
 plugins {
     id 'com.android.application'
-    id 'com.github.triplet.play' version '2.1.0'
+    //id 'com.github.triplet.play' version '2.1.0'
 }
 
 apply plugin: 'com.android.application'
@@ -34,7 +34,7 @@ android {
         applicationId "ca.fuwafuwa.kaku"
         minSdkVersion 21
         targetSdkVersion 28
-        versionCode 66
+        versionCode 67
         versionName "$versionPrefix.$versionCode"
     }
 
@@ -67,7 +67,7 @@ android {
         unitTests.returnDefaultValues = true
     }
 
-    play {
+    /*play {
         track = 'internal'
         serviceAccountCredentials = file("..\\service_account.json")
 
@@ -75,7 +75,7 @@ android {
         outputProcessor {
             versionNameOverride = "$versionPrefix.$versionCode"
         }
-    }
+    }*/
 }
 
 dependencies {
