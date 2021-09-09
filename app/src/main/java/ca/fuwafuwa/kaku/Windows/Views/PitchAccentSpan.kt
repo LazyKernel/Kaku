@@ -64,7 +64,7 @@ class PitchAccentSpan(private val mPitch: Int, private val mStart: Int, private 
         var numSpecial = 0
         var mutableLimit = limit
         // Ignore dots marking kanji position and small letters
-        val specials = listOf('.', ' ', 'ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ')
+        val specials = listOf('.', ' ', 'ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ゃ', 'ゅ', 'ょ')
         while (i < mutableLimit) {
             // This theoretically shouldn't happen but it might
             if (mutableLimit >= text.length) {
